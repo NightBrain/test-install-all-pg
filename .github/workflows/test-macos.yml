@@ -2,7 +2,7 @@ name: Test macOS Installer
 
 on:
   push:
-    paths: [ 'install-mac.sh' ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:

@@ -165,15 +165,12 @@ fi
 success "DBeaver พร้อมใช้งาน"
 
 # ============================================================
-# 9. Antigravity (latest) → npm install -g
+# 9. Antigravity
 # ============================================================
-header "9. ติดตั้ง Antigravity (latest)"
-if command -v npm &>/dev/null; then
-    npm install -g @antigravity/cli
-    success "ติดตั้ง Antigravity สำเร็จ"
-else
-    fail "ไม่พบ npm กรุณาตรวจสอบ Node.js"
-fi
+header "9. Antigravity"
+echo -e "${YELLOW}  Antigravity ไม่มี package บน npm${NC}"
+echo -e "${YELLOW}  กรุณาติดตั้งจาก: https://antigravity.dev${NC}"
+echo -e "${YELLOW}  หรือดาวน์โหลดผ่าน IDE Extension (VS Code, JetBrains)${NC}"
 
 # ============================================================
 # สรุปผล
@@ -188,15 +185,14 @@ check() {
     else fail "$name: ไม่พบ (ลองเปิด terminal ใหม่)"; fi
 }
 
-check "Git"         "git --version"
-check "PHP"         "php --version"
-check "Composer"    "composer --version"
-check "Laravel"     "laravel --version"
-check "Node.js"     "node --version"
-check "npm"         "npm --version"
-check "Bun"         "bun --version"
-check "Docker CLI"  "docker --version"
-check "Antigravity" "antigravity --version"
+check "Git"        "git --version"
+check "PHP"        "php --version"
+check "Composer"   "composer --version"
+check "Laravel"    "laravel --version"
+check "Node.js"    "node --version"
+check "npm"        "npm --version"
+check "Bun"        "bun --version"
+check "Docker CLI" "docker --version"
 
 echo ""
 echo -e "${MAGENTA}============================================================${NC}"

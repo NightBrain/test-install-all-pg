@@ -229,13 +229,24 @@ if (Test-Path "C:\Program Files\DBeaver\dbeaver.exe") {
     Write-Step "กำลังดึงเวอร์ชันล่าสุดของ DBeaver..."
     $DBeaverRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/dbeaver/dbeaver/releases/latest" -UseBasicParsing
     $DBeaverVersion = $DBeaverRelease.tag_name
-    $DBeaverAsset   = $DBeaverRelease.assets | Where-Object { $_.name -match "x86_64-setup\.exe$" } | Select-Object -First 1
-    if (-not $DBeaverAsset) {
-        # fallback: ใช้ URL ตรงๆ ถ้าหา asset ไม่เจอ
-        $DBeaverUrl = "https://dbeaver.io/files/$DBeaverVersion/dbeaver-ce-$DBeaverVersion-x86_64-setup.exe"
-    } else {
+    Write-Info "DBeaver latest tag: $DBeaverVersion"
+
+    # แสดง assets ทั้งหมดเพื่อ debug
+    Write-Info "Available assets:"
+    $DBeaverRelease.assets | ForEach-Object { Write-Info "  - $($_.name)" }
+
+    # หา Windows installer (.exe)
+    $DBeaverAsset = $DBeaverRelease.assets |
+        Where-Object { $_.name -match "win.*x86_64.*\.exe$" -or $_.name -match "x86_64.*win.*\.exe$" -or $_.name -match "windows.*x64.*\.exe$" -or $_.name -match "setup.*x86_64.*\.exe$" -or $_.name -match "x86_64-setup\.exe$" } |
+        Select-Object -First 1
+
+    if ($DBeaverAsset) {
         $DBeaverUrl = $DBeaverAsset.browser_download_url
+    } else {
+        # fallback: GitHub releases direct URL
+        $DBeaverUrl = "https://github.com/dbeaver/dbeaver/releases/download/$DBeaverVersion/dbeaver-ce-$DBeaverVersion-x86_64-setup.exe"
     }
+
     $DBeaverInstaller = "$TempDir\dbeaver-setup.exe"
     Write-Info "DBeaver URL: $DBeaverUrl"
     Download-File -Url $DBeaverUrl -Destination $DBeaverInstaller -Name "DBeaver $DBeaverVersion"
@@ -244,16 +255,12 @@ if (Test-Path "C:\Program Files\DBeaver\dbeaver.exe") {
 }
 
 # ============================================================
-# 9. Antigravity (latest via npm)
+# 9. Antigravity
 # ============================================================
-Write-Header "9. ติดตั้ง Antigravity (latest)"
-if (Get-Command npm -ErrorAction SilentlyContinue) {
-    npm install -g @antigravity/cli 2>&1 | Write-Host
-    Refresh-Path
-    Write-Success "ติดตั้ง Antigravity สำเร็จ"
-} else {
-    Write-Fail "ไม่พบ npm กรุณาตรวจสอบ Node.js"
-}
+Write-Header "9. Antigravity"
+Write-Host "  Antigravity ไม่มี package บน npm" -ForegroundColor Yellow
+Write-Host "  กรุณาติดตั้งจาก: https://antigravity.dev" -ForegroundColor Yellow
+Write-Host "  หรือดาวน์โหลดผ่าน IDE Extension (VS Code, JetBrains)" -ForegroundColor Yellow
 
 # ============================================================
 # สรุปผล
@@ -262,15 +269,14 @@ Write-Header "สรุปผลการติดตั้ง"
 Refresh-Path
 
 $tools = @(
-    @{ Name = "Git";         Command = "git --version" },
-    @{ Name = "PHP";         Command = "php --version" },
-    @{ Name = "Composer";    Command = "composer --version" },
-    @{ Name = "Laravel";     Command = "laravel --version" },
-    @{ Name = "Node.js";     Command = "node --version" },
-    @{ Name = "npm";         Command = "npm --version" },
-    @{ Name = "Bun";         Command = "bun --version" },
-    @{ Name = "Docker";      Command = "docker --version" },
-    @{ Name = "Antigravity"; Command = "antigravity --version" }
+    @{ Name = "Git";      Command = "git --version" },
+    @{ Name = "PHP";      Command = "php --version" },
+    @{ Name = "Composer"; Command = "composer --version" },
+    @{ Name = "Laravel";  Command = "laravel --version" },
+    @{ Name = "Node.js";  Command = "node --version" },
+    @{ Name = "npm";      Command = "npm --version" },
+    @{ Name = "Bun";      Command = "bun --version" },
+    @{ Name = "Docker";   Command = "docker --version" }
 )
 foreach ($t in $tools) {
     try {

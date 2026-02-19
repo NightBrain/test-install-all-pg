@@ -33,6 +33,30 @@ jobs:
           Set-ExecutionPolicy Bypass -Scope Process -Force
           .\install_ci.ps1
 
+      - name: Add installed tools to PATH (persist between steps)
+        shell: pwsh
+        run: |
+          # Bun
+          $bunBin = "$env:USERPROFILE\.bun\bin"
+          if (Test-Path $bunBin) {
+            "$bunBin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            Write-Host "Added Bun to GITHUB_PATH: $bunBin"
+          }
+          # Composer global bin (Laravel)
+          $composerBin = "$env:APPDATA\Composer\vendor\bin"
+          if (Test-Path $composerBin) {
+            "$composerBin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            Write-Host "Added Composer bin to GITHUB_PATH: $composerBin"
+          }
+          # PHP
+          if (Test-Path "C:\php") {
+            "C:\php" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+          # Composer dir
+          if (Test-Path "C:\composer") {
+            "C:\composer" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+
       - name: Verify installations
         shell: pwsh
         run: |

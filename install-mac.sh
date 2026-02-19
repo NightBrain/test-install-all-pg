@@ -125,7 +125,16 @@ success "Node.js พร้อมใช้งาน"
 # 6. Bun (latest) → brew
 # ============================================================
 header "6. ติดตั้ง Bun (latest)"
-brew install bun
+if command -v bun &>/dev/null; then
+    info "Bun ติดตั้งแล้ว: $(bun --version)"
+else
+    step "กำลังติดตั้ง Bun ผ่าน official installer..."
+    curl -fsSL https://bun.sh/install | bash
+    BUN_BIN="$HOME/.bun/bin"
+    export PATH="$BUN_BIN:$PATH"
+    grep -qF "$BUN_BIN" "$HOME/.zshrc" 2>/dev/null || \
+        echo "export PATH=\"$BUN_BIN:\$PATH\"" >> "$HOME/.zshrc"
+fi
 info "เวอร์ชัน: $(bun --version 2>/dev/null || echo 'เปิด terminal ใหม่')"
 success "Bun พร้อมใช้งาน"
 

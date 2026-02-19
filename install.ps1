@@ -187,7 +187,7 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
 } else {
     Write-Step "กำลังดึงเวอร์ชันล่าสุดของ Bun..."
     $BunRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/oven-sh/bun/releases/latest" -UseBasicParsing
-    $BunAsset   = $BunRelease.assets | Where-Object { $_.name -eq "bun-windows-x64.zip" }
+    $BunAsset   = $BunRelease.assets | Where-Object { $_.name -eq "bun-windows-x64.zip" } | Select-Object -First 1
     $BunZip     = "$TempDir\bun-windows-x64.zip"
     Download-File -Url $BunAsset.browser_download_url -Destination $BunZip -Name "Bun"
     if (-not (Test-Path $BunDir)) { New-Item -ItemType Directory -Path $BunDir | Out-Null }
@@ -229,9 +229,16 @@ if (Test-Path "C:\Program Files\DBeaver\dbeaver.exe") {
     Write-Step "กำลังดึงเวอร์ชันล่าสุดของ DBeaver..."
     $DBeaverRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/dbeaver/dbeaver/releases/latest" -UseBasicParsing
     $DBeaverVersion = $DBeaverRelease.tag_name
-    $DBeaverAsset   = $DBeaverRelease.assets | Where-Object { $_.name -match "x86_64-setup\.exe$" }
+    $DBeaverAsset   = $DBeaverRelease.assets | Where-Object { $_.name -match "x86_64-setup\.exe$" } | Select-Object -First 1
+    if (-not $DBeaverAsset) {
+        # fallback: ใช้ URL ตรงๆ ถ้าหา asset ไม่เจอ
+        $DBeaverUrl = "https://dbeaver.io/files/$DBeaverVersion/dbeaver-ce-$DBeaverVersion-x86_64-setup.exe"
+    } else {
+        $DBeaverUrl = $DBeaverAsset.browser_download_url
+    }
     $DBeaverInstaller = "$TempDir\dbeaver-setup.exe"
-    Download-File -Url $DBeaverAsset.browser_download_url -Destination $DBeaverInstaller -Name "DBeaver $DBeaverVersion"
+    Write-Info "DBeaver URL: $DBeaverUrl"
+    Download-File -Url $DBeaverUrl -Destination $DBeaverInstaller -Name "DBeaver $DBeaverVersion"
     Start-Process -FilePath $DBeaverInstaller -ArgumentList "/S" -Wait
     Write-Success "ติดตั้ง DBeaver $DBeaverVersion สำเร็จ"
 }

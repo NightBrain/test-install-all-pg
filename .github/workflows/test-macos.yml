@@ -1,0 +1,72 @@
+name: Test macOS Installer
+
+on:
+  push:
+    paths: [ 'install-mac.sh' ]
+  workflow_dispatch:
+
+jobs:
+  test-macos:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x ./install-mac.sh
+
+      - name: Patch script (ปิด read -r ตอนท้าย)
+        run: |
+          # ลบ "read -r" บรรทัดสุดท้ายออก (ไม่ต้อง interactive ใน CI)
+          sed -i '' 's/^read -r$/# read -r (CI)/' install-mac.sh
+
+      - name: Run installer
+        run: ./install-mac.sh
+        env:
+          # ไม่ให้ Homebrew ถามยืนยัน
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+          CI: "true"
+
+      - name: Verify installations
+        run: |
+          failed=0
+
+          check() {
+            local name="$1" cmd="$2" pattern="$3"
+            local out
+            out=$(eval "$cmd" 2>/dev/null | head -1) || out=""
+            if echo "$out" | grep -qE "$pattern"; then
+              echo "PASS  $name : $out"
+            else
+              echo "FAIL  $name : ${out:-not found}"
+              failed=$((failed + 1))
+            fi
+          }
+
+          # โหลด nvm
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+          # โหลด PATH เพิ่มเติม
+          export PATH="$HOME/.composer/vendor/bin:$HOME/.bun/bin:$PATH"
+
+          check "Git"       "git --version"       "git version"
+          check "PHP"       "php --version"       "PHP 8\."
+          check "Composer"  "composer --version"  "Composer"
+          check "Node.js"   "node --version"      "v[0-9]+"
+          check "npm"       "npm --version"       "[0-9]+\.[0-9]+"
+          check "Bun"       "bun --version"       "[0-9]+\.[0-9]+"
+          check "Docker"    "docker --version"    "Docker version"
+          check "Laravel"   "laravel --version"   "[Ll]aravel"
+
+          if [ "$failed" -gt 0 ]; then
+            echo ""
+            echo "Failed: $failed tool(s)"
+            exit 1
+          else
+            echo ""
+            echo "All tools installed successfully!"
+          fi

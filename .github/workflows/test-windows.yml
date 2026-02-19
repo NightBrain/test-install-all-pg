@@ -1,0 +1,58 @@
+name: Test Windows Installer
+
+on:
+  push:
+    paths: [ 'install.ps1' ]
+  workflow_dispatch:
+
+jobs:
+  test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Disable Windows Defender (speed up)
+        shell: pwsh
+        run: Set-MpPreference -DisableRealtimeMonitoring $true
+        continue-on-error: true
+
+      - name: Patch script (ปิด Read-Host & Restart)
+        shell: pwsh
+        run: |
+          $c = Get-Content .\install.ps1 -Raw
+          $c = $c -replace 'Read-Host',           '# Read-Host (CI)'
+          $c = $c -replace 'Restart-Computer -Force', 'Write-Host "CI: Restart skipped"'
+          $c | Set-Content .\install_ci.ps1
+
+      - name: Run installer
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          .\install_ci.ps1
+
+      - name: Verify installations
+        shell: pwsh
+        run: |
+          $failed = 0
+          function Check($name, $cmd, $pattern) {
+            try {
+              $out = Invoke-Expression $cmd 2>&1 | Out-String
+              if ($out -match $pattern) { Write-Host "PASS  $name : $($out.Trim().Split([char]10)[0])" -ForegroundColor Green }
+              else { Write-Host "FAIL  $name : $out" -ForegroundColor Red; $script:failed++ }
+            } catch { Write-Host "FAIL  $name : not found" -ForegroundColor Red; $script:failed++ }
+          }
+
+          Check "Git"       "git --version"       "git version"
+          Check "PHP"       "php --version"       "PHP 8\."
+          Check "Composer"  "composer --version"  "Composer"
+          Check "Node.js"   "node --version"      "v\d+"
+          Check "npm"       "npm --version"       "\d+\.\d+"
+          Check "Bun"       "bun --version"       "\d+\.\d+"
+          Check "Docker"    "docker --version"    "Docker version"
+          Check "Laravel"   "laravel --version"   "Laravel"
+
+          if ($failed -gt 0) { Write-Host "`nFailed: $failed" -ForegroundColor Red; exit 1 }
+          else { Write-Host "`nAll tools installed!" -ForegroundColor Green }
